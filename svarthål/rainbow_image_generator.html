@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="800" height="500"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            
+        gradient.addColorStop(0, 'red');
+        gradient.addColorStop(1 / 6, 'orange');
+        gradient.addColorStop(2 / 6, 'yellow');
+        gradient.addColorStop(3 / 6, 'white');
+        gradient.addColorStop(4 / 6, 'cyan');
+        gradient.addColorStop(5 / 6, 'blue');
+        gradient.addColorStop(1, 'red');
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const overlayGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        overlayGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        overlayGradient.addColorStop(1, 'rgba(0, 0, 0, 1)');
+
+        ctx.fillStyle = overlayGradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    </script>
+</body>
+</html>

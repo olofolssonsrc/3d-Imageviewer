@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const c = 299722458;
+            startCord = [c*60, c*20]
+            sCord = [0, 0];
+
+            ctx.beginPath();
+            ctx.arc(scaleToCanvas(sCord)[0], scaleToCanvas(sCord)[1], 5, 0, 2 * Math.PI, false);
+            ctx.fillStyle = 'black';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(scaleToCanvas(startCord)[0], scaleToCanvas(startCord)[1], 5, 0, 2 * Math.PI, false);
+            ctx.fillStyle = 'red';
+            ctx.fill();
+
+            simulatePath(startCord, [-1,0], 1)
+
+            //start är startpotision
+            //dir är riktningsvektorn 
+            //sec är hur många gånder per sekund den updataerar
+            function simulatePath(start, dir, sec){
+
+                var x = start[0];
+                var y = start[1];
+
+                ctx.beginPath();
+                var startCordCanvas = scaleToCanvas(start);
+                ctx.moveTo(startCordCanvas[0], startCordCanvas[1]);
+
+                var i = 0;
+
+                while(i < 100){
+                    i++;
+                    //Börja med att lägga in egna refranceframens inverkan
+                    var xMov = (c / sec)*dir[0];
+                    var yMov =  (c / sec)*dir[1];
+
+                    //svarthål inverkan
+                 //   var distToSx = x - sCord[0];
+                 //   var distToSy = y - sCord[1];
+                    x += xMov;
+                    y += yMov;
+                    CordCanvas = scaleToCanvas([x,y]);
+                    ctx.lineTo(CordCanvas[0], CordCanvas[1]);
+                   // console.log((x) + "   " + (y))
+
+                   if(CordCanvas[0] > canvas.width || CordCanvas[0] < 0){
+                        break;
+                    }
+                    if(CordCanvas[1] > canvas.height || CordCanvas[1] < 0){
+                        break;
+                    }
+                }
+                ctx.strokeStyle = 'blue';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            //antar att canvas bredd motsvarar 100 ljus sekunder
+            //Höjd räknas ut beroende på canvasesns ratio
+            function scaleToCanvas(val){
+
+                var inX = val[0];
+                var inY = val[1];
+
+                var ratio = canvas.height / canvas.width;
+
+                var width = c*100;
+                var height = width*ratio;
+                    
+                var xUt = canvas.width*0.2 + (inX/width)*canvas.width;
+                var yUt = canvas.height*0.5 - (inY/height)*canvas.height;
+                return [xUt, yUt]
+            }
+
+
+    </script>
+</body>
+</html>

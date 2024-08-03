@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: black; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="200000000" height="100000000"></canvas>
+    <script>
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const numStars = 20;
+
+        for (let i = 0; i < numStars; i++) {
+
+            const radius = Math.random()*0 + 300;
+
+            const x = radius + Math.random() * (canvas.width - radius *2);
+            const y = Math.random() * (canvas.height - radius *2);
+
+            //const radius = Math.random() * 2;
+
+            //var warpFactor = 1/omkrets;
+
+            for (let j = 0.5; j < (radius*2); j += 15) {
+                
+                var yCord = j + y;
+                var dennaLängd = canvas.width// radius*Math.sqrt(1 - Math.pow(((j/(radius)) - 1), 2))
+                
+                ekvatorKvot = (dennaLängd) / canvas.width;
+
+                var vinkel = Math.PI*((y-radius)/canvas.height)+2*Math.PI*((j-radius)/canvas.height) 
+
+             //   var omkrets2 = canvas.width*Math.cos(vinkel);
+             //   var nylatitudKvot = (dennaLängd) / omkrets2;
+              //  var warpFaktor = ekvatorKvot / nylatitudKvot;
+                
+                console.log(dennaLängd)
+                ctx.beginPath();
+                ctx.moveTo(x - (dennaLängd / Math.cos(vinkel)), yCord);
+                ctx.lineTo(x + (dennaLängd / Math.cos(vinkel)) , yCord);
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 5;
+                ctx.stroke();
+
+
+            }
+
+            /*
+             //warpFactor = nylatitudKvot / ekvatorKvot;
+            ctx.beginPath();
+            ctx.ellipse(x, y, radius, radius, 0, 0, 2*Math.PI, 'white');
+
+            ctx.fill();*/
+        }
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<html><head>
+    <title>svart hål</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    
+    <style>
+      body {
+        background-color: #202020;
+        margin: 0;
+      }
+      body {
+       overflow: hidden; 
+      }
+    </style>
+  </head>
+  <body id="test">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+  
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  
+  const scene = new THREE.Scene();
+  const camera = new THREE.OrthographicCamera(0, 1, 1, 0, 0.1, 1000);
+  camera.position.set(0, 0, 1);
+  
+  const renderer = new THREE.WebGLRenderer();
+  renderer.setSize(w, h);
+  document.body.appendChild(renderer.domElement);
+  
+  var texture = null;
+
+  var uniforms = null;
+  var material = null;
+
+  const vertexShader = `
+    void main() {
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `;
+  
+  const fragmentShader = `
+    uniform vec2 resolution;  
+    uniform vec3 rotation;
+    uniform vec3 rotVecPlane;
+    uniform vec3 rotVecUp;
+    uniform sampler2D u_texture;
+    uniform float rotX;
+    uniform float rotY;
+
+    const float PI = 3.14159265358979323846;
+
+    void main() {
+
+      vec2 uv = gl_FragCoord.xy / resolution.xy;
+                                 
+      vec3 global = rotation + 1.77777777777777777777*(uv.x - 0.5)*rotVecPlane + (uv.y - 0.5)*rotVecUp;
+      vec3 ProjPlane = vec3(global.x, global.y, 0.0);
+      vec3 ProjWall = vec3(global.x, 0.0, global.z);
+
+      float LengthGlobal = length(global);
+      float lengthProjPlane = length(ProjPlane);
+      float lengthProjWall = length(ProjWall);
+     
+      vec3 raktFram = vec3(1.0, 0.0, 0.0);
+      vec3 raktUpp = vec3(0.0, 0.0, 1.0);
+
+      float minstVinkelY = 0.0;
+      float vinkelY = 0.0;
+      if (LengthGlobal > 0.0) {
+          minstVinkelY = acos(dot(raktUpp, global) / LengthGlobal);
+          vinkelY = PI - minstVinkelY;
+      }
+
+      float minstVinkelX = 0.0;
+      float vinkelX = 0.0;
+      if (lengthProjPlane > 0.0) {
+          minstVinkelX = acos(dot(raktFram, ProjPlane) / lengthProjPlane);
+          vinkelX = minstVinkelX;
+      }
+      
+      if(ProjPlane.y <= 0.0){
+        vinkelX = 2.0*PI - vinkelX;
+      }
+
+      float finalUVX = vinkelX / (2.0*PI);
+      float finalUVY = vinkelY / PI;  
+
+      vec2 finalUV = vec2(finalUVX, finalUVY);
+      vec2 clampedUV = clamp(finalUV, 0.0, 1.0);
+      vec4 color = texture2D(u_texture, clampedUV);
+      
+     // gl_FragColor = color;
+     gl_FragColor = vec4(finalUV, 0.0, 1.0);
+
+
+/*
+      float finalX = rotY + 1.77777777777*(uv.x - 0.5) * 2.0;
+      float finalY = rotY + (uv.y - 0.5)*2.0;
+      gl_FragColor = vec4(finalX / (2.0*PI), finalY / (2*PI), 0.0, 0.0);*/
+    }
+  `;
+
+  var ra = 1.01;
+  var rb = 0.10;
+  var rc = 0.0;
+  
+  var scaler = 2.0;
+
+  var v_rotation = new THREE.Vector3(ra, rb, rc);
+  var v_rotVecPlane = new THREE.Vector3(scaler*(-rb), scaler*ra, 0);
+  var v_rotVecUp = new THREE.Vector3(scaler*(-rc*ra),scaler*( -rc*rb), scaler*(Math.pow(ra, 2) + Math.pow(rb, 2)));
+
+  v_rotation.normalize();
+  v_rotVecPlane.normalize();
+  v_rotVecUp.normalize();
+
+  v_rotVecPlane.multiplyScalar(2);
+
+  v_rotVecUp.multiplyScalar(2);
+
+  document.getElementById("test").onclick = () => {
+    document.body.requestPointerLock();
+  }
+
+  var previousMouseX = 0;
+  var previousMouseY = 0;
+  var Phi = 0; 
+  var Theta = 0.5*Math.PI;
+var varv = 1;
+  document.addEventListener('mousemove', (event) => {
+    var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+    var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+
+    Theta += movementY * 0.0005;
+    Phi += varv* movementX * 0.0005;
+
+    if(Theta <= 2*Math.PI && Theta >= Math.PI){
+      varv = -1;
+    }else{
+      varv = 1;
+    }
+
+    if(Phi >= Math.PI*2){
+      Phi = 0;
+    }
+
+    if(Phi < 0){
+      Phi = Math.PI*2;
+    }
+
+    if(Theta >= Math.PI*2){
+      Theta = 0;
+    }
+
+    if(Theta < 0){
+      Theta = Math.PI*2;
+    }
+  });
+
+  /*
+  för fps helt ok
+  var varv = 1;  
+  document.addEventListener('mousemove', (event) => {
+    var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+    var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+
+    Theta += movementY * 0.0005;
+    Phi += varv* movementX * 0.0005;
+
+    if(Theta <= 2*Math.PI && Theta >= Math.PI){
+      varv = -1;
+    }else{
+      varv = 1;
+    }
+
+    if(Phi >= Math.PI*2){
+      Phi = 0;
+    }
+
+    if(Phi < 0){
+      Phi = Math.PI*2;
+    }
+
+    if(Theta >= Math.PI*2){
+      Theta = 0;
+    }
+
+    if(Theta < 0){
+      Theta = Math.PI*2;
+    }
+  });
+  
+*/
+
+  function animate(t) {
+    t *= 0.001;
+    requestAnimationFrame(animate);
+    uniforms.resolution.value.set(1920, 1080);
+
+    var scalar = 1;
+
+    ra = Math.sin(Theta)*Math.cos(Phi);
+    rb = Math.sin(Theta)*Math.sin(Phi);
+    rc = Math.cos(Theta);
+
+    rau = scalar*Math.sin((Math.PI / 2) - Theta)*Math.cos(Phi + Math.PI);
+    rbu = scalar*Math.sin((Math.PI / 2) - Theta)*Math.sin(Phi + Math.PI);
+    rcu = scalar*Math.cos((Math.PI / 2) - Theta);
+
+    rap = scalar*Math.sin((Math.PI / 2))*Math.cos(Phi + (Math.PI / 2));
+    rbp = scalar*Math.sin((Math.PI / 2))*Math.sin(Phi + (Math.PI / 2));
+    rcp = scalar*Math.cos((Math.PI / 2));
+
+    uniforms.rotation.value.set(ra, rb, rc);
+    uniforms.rotVecPlane.value.set(rap, rbp, rcp);
+    uniforms.rotVecUp.value.set(rau, rbu, rcu);
+    uniforms.rotX.value = Theta;
+    uniforms.rotY.value = Phi;
+
+    renderer.render(scene, camera);
+  }
+  
+  function handleWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+  window.addEventListener('resize', handleWindowResize, false);
+  
+  const textureLoader = new THREE.TextureLoader();
+  textureLoader.load(
+  'https://www.birgittaberggren.com/test.jfif',
+  (tex) => {
+    //INITIERA ALLTING
+    tex.wrapS = THREE.ClampToEdgeWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+     tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    uniforms = {
+      time: { value: 0.0 },
+      resolution: { value: new THREE.Vector2(w, h) },
+      mouse: { value: new THREE.Vector2() },
+      angle:{  value: 0.0},
+      rotation:{value : v_rotation},
+      rotVecPlane:{value : v_rotVecPlane},
+      rotVecUp:{value : v_rotVecUp },
+      rotX:{value : Phi},
+      rotY:{value : Theta},
+      u_texture:{value : tex},
+
+
+   };
+  
+  material = new THREE.ShaderMaterial({
+    uniforms,
+    vertexShader,
+    fragmentShader,
+  });
+  
+  const geometry = new THREE.PlaneGeometry(1, 1);
+  
+  const plane = new THREE.Mesh(geometry, material);
+  plane.position.set(0.5, 0.5, 0);
+  scene.add(plane);
+
+  animate();
+  },
+  undefined,(e) => {console.log('error.', e);}
+);
+
+  </script>
+
+  </body></html>
