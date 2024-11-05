@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: white; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" ></canvas>
+    <script>
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        ctx.fillStyle = 'white';
+
+// Draw a rectangle that covers the entire canvas
+ctx.fillRect(0, 0, canvas.width*2, canvas.height*2);
+
+        const numStars = 50;
+
+        class Point{
+
+            constructor(theta, phi){
+                this.theta = theta;
+                this.phi = phi;
+                
+            }
+        }
+        //ej perfekt, men tillräckligt bra
+        class Sphere {
+
+        constructor(size){
+            //size är antal punkter på ekvator
+            this.points = [];
+            this.degthetaTophi ={};
+            //använder stor ekvator för att undvika flyttals precisionsfel
+            var equatorOmkrets = 100000;
+            var degdiff = ((2*Math.PI) / size);
+            this.degdiff = degdiff;
+            for (let i = 0; i < Math.PI*0.6; i += (degdiff * 1)) {
+                
+                var omkrets2 = 2*Math.PI*(Math.cos(i + degdiff)*(equatorOmkrets/(2*Math.PI)));
+                var antalPoint2 = Math.round((omkrets2 /equatorOmkrets)*size);
+
+                if(antalPoint2 <= 0){
+                    break;
+                }
+
+                var degdiffphi =  ((2*Math.PI) / antalPoint2);
+                this.degdiffphi = degdiffphi;
+                this.degthetaTophi[i] = degdiffphi;
+
+                for (let j = 0; j <= antalPoint2; j++) {
+                    this.addPoint(i, j*degdiffphi);   
+                    this.addPoint(-i, j*degdiffphi);                  
+                }
+            }
+        }
+
+        addPoint(theta, phi){
+           // console.log("§12")
+            this.points.push(new Point(theta, phi))
+        }
+
+        getRandomPoint(){
+            var length = Math.floor(Math.random()*(-1 + this.points.length));
+            return(this.points[parseInt(length)]);
+        }
+
+        getRandomPoint2(){
+            var length = Math.floor(Math.random()*(-1 + this.points.length));
+            var point = this.points[parseInt(length)]
+            var theta = point.theta;
+            var phi = point.phi;
+            var randtheta = Math.random() * 2 - 1;
+            var randphi = Math.random() * 2 - 1;
+
+            if(this.degthetaTophi[theta] != undefined){
+                return new Point(theta + 1*this.degdiff*randtheta, phi + randphi* this.degthetaTophi[theta]);
+            }else{
+                return new Point(theta + 1*this.degdiff*randtheta, phi + randphi);
+            }
+            
+        }
+
+        getAllPoints(){
+            return this.points;
+        }
+
+        }
+
+
+        var sphere = new Sphere(1000);
+        var pp = sphere.getAllPoints();
+
+        function polarToCanvas(phi, theta, canvasWidth, canvasHeight) {
+            // Convert polar coordinates to canvas coordinates
+            const x = (phi / (2 * Math.PI)) * canvasWidth;
+            const y = (theta / Math.PI) * canvasHeight;
+            return { x, y };
+        }
+
+        // Define the points (phi and theta should be in radians)
+        let p1 = 0; // Example values, replace with actual
+        let t1 = 0;
+
+        let p2 = 0; // Example values, replace with actual
+        let t2 = Math.PI;
+        
+        let p4 = Math.PI * 2; // Example values, replace with actual
+        let t4 = 0;
+
+
+
+        let p3 = 2 * Math.PI; // Example values, replace with actual
+        let t3 = Math.PI ;
+
+        // Convert points to canvas coordinates
+        const { x: canvx1, y: canvy1 } = polarToCanvas(p1, t1, canvas.width, canvas.height);
+        const { x: canvx2, y: canvy2 } = polarToCanvas(p2, t2, canvas.width, canvas.height);
+        const { x: canvx3, y: canvy3 } = polarToCanvas(p3, t3, canvas.width, canvas.height);
+        const { x: canvx4, y: canvy4 } = polarToCanvas(p4, t4, canvas.width, canvas.height);
+
+        // Start drawing the polygon
+        ctx.beginPath();
+        ctx.moveTo(canvx1, canvy1); // Move to the first point
+
+        // Draw lines to each subsequent point
+        ctx.lineTo(canvx2, canvy2);
+        ctx.lineTo(canvx3, canvy3);
+        ctx.lineTo(canvx4, canvy4);
+
+        // Close the path to connect back to the first point
+        ctx.closePath();
+
+        // Set a random fill style
+        function getRandomColor() {
+            const r = Math.floor(Math.random() * 256);
+            const g = Math.floor(Math.random() * 256);
+            const b = Math.floor(Math.random() * 256);
+           // return `rgb(${r}, ${g}, ${b})`;
+            return 'darkblue';
+        }
+
+        ctx.fillStyle = getRandomColor();
+
+        // Fill the polygon
+        ctx.fill();
+
+        // Optionally, set stroke style and draw the outline
+        ctx.strokeStyle = ctx.fillStyle;
+        ctx.lineWidth = 0;
+        ctx.stroke();
+
+
+        for (let i = 0; i < 50000; i++) {
+            const radius = Math.random()*0.002 ;
+
+            var point = sphere.getRandomPoint2()
+            
+            var phi = point.phi;
+            var theta = point.theta;
+
+// Function to convert radians to degrees
+            function radiansToDegrees(radians) {
+                return radians * (180 / Math.PI);
+            }
+
+            // Assume point.phi and point.theta are given
+            var phi = point.phi;
+            var theta = point.theta + Math.PI * 0.5; // Adjust theta
+
+            // Convert phi and theta from radians to degrees
+            var phiDegrees = radiansToDegrees(phi);
+            var thetaDegrees = radiansToDegrees(theta);
+
+            // Log the results to the console
+          //  console.log('Phi in degrees:', phiDegrees);
+           // console.log('Theta in degrees:', thetaDegrees);      
+
+          //  var phi =  Math.PI / 2;
+           // var theta = Math.PI / 2;
+
+
+
+
+            var x = Math.sin(theta) * Math.cos(phi);
+            var y = Math.sin(theta) * Math.sin(phi);
+            var z = Math.cos(theta);
+
+           // var vec = [x, y, z];
+           // [r2, theta2, phi2] = KarttillSfär(vec);
+
+          //  var xx = (phi2 / (Math.PI*2))*canvas.width;
+          //  var yy = canvas.height*0.5 + (theta2 / (Math.PI))*canvas.height;
+
+           // ctx.beginPath();
+         //   ctx.arc(yy, xx, 500, 0, 2 * Math.PI); // 5 is the radius of the circle
+         //   ctx.strokeStyle = "red"; // Set the color of the circle
+         //   ctx.stroke(); // Fill the circle with the specified color
+
+            var xu = Math.sin((Math.PI / 2) - theta)*Math.cos(phi + Math.PI);
+            var yu = Math.sin((Math.PI / 2) - theta)*Math.sin(phi + Math.PI);
+            var zu = Math.cos((Math.PI / 2) - theta);
+
+            var xp = Math.cos(phi + (Math.PI / 2));
+            var yp = Math.sin(phi + (Math.PI / 2));
+            var zp = 0;
+
+            var vec = [x, y, z];
+            var vecUp = [xu, yu, zu];
+            var vecPlane = [xp, yp, zp];
+            ctx.beginPath();
+            ctx.strokeStyle  = "white";
+
+            var lastcanvx = 0;
+            var lastcanvy = 0; 
+
+            var changesX = [];
+            var changesY = [];
+            var steps = 70;
+            var stepsize = (2*Math.PI)/(steps -1);
+
+            for (let j = 0; j < steps; j++) {
+                var deg = j*stepsize;
+                var offset_plane = radius* Math.sin(deg);
+                var offset_up = radius*Math.cos(deg);     
+
+                var diffVec_up =vektorScala(vecUp, offset_up);
+                var diffVec_plane =vektorScala(vecPlane, offset_plane);
+                var diffVec = vektorAddition(diffVec_up, diffVec_plane);
+                var resVec = vektorAddition(diffVec, vec);
+                [r2, theta2, phi2] = KarttillSfär(resVec);
+
+                var canvx = (phi2 / (Math.PI*2))*canvas.width;
+                var canvy = (theta2 / Math.PI)*canvas.height;
+             //   console.log(theta)
+                if(j == 0){
+                    ctx.moveTo(canvx, canvy)
+                }else{
+                    ctx.lineTo(canvx, canvy)
+                }
+                
+                if(j != 0){                
+                var deltaX = lastcanvx - canvx;
+                changesX.push(deltaX / Math.abs(deltaX))
+
+                var deltaY = lastcanvy - canvy;
+                changesY.push(deltaY / Math.abs(deltaY))}
+
+                lastcanvx = canvx;
+                lastcanvy = canvy
+
+            }
+
+           // console.log(changesX)
+
+            var counterx = 0;
+            var last = changesX[0];
+            for (let j = 1; j < changesX.length; j++) {
+
+                if(changesX[j] != last){
+                    counterx++;
+                    last = changesX[j];
+                }
+            }
+            
+            var countery = 0;
+            var lasty = changesY[0];
+            for (let j = 1; j < changesY.length; j++) {
+
+                if(changesY[j] != lasty){
+                    countery++;
+                    lasty = changesY[j];
+                }
+            }
+
+            function getRandomColor() {
+                const r = Math.floor(Math.random() * 256);
+                const g = Math.floor(Math.random() * 256);
+                const b = Math.floor(Math.random() * 256);
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+
+            if(counterx < 3 && countery < 3){
+                ctx.closePath(); 
+                ctx.fillStyle = 'white';
+                ctx.fill();
+            }else{
+                console.log("epic fail")
+                i--;
+            }
+
+
+            
+
+            //ctx.arc(canvx, canvy, 3, 0, Math.PI * 2); // x, y, radius, startAngle, endAngle
+            
+  
+
+
+            //var point = pp[i]
+
+            //console.log((point.phi/(Math.PI*2))*360 + "     " + ((point.theta/(Math.PI))*180));
+
+
+
+
+            //console.log(test)
+
+  
+
+
+
+            //ctx.arc(canvx, canvy, 3, 0, Math.PI * 2); // x, y, radius, startAngle, endAngle
+            
+  
+
+
+            //var point = pp[i]
+
+            //console.log((point.phi/(Math.PI*2))*360 + "     " + ((point.theta/(Math.PI))*180));
+
+
+
+
+            //console.log(test)
+
+        }
+        
+        function KarttillSfär(a) {
+            var r = Math.sqrt(a[0] ** 2 + a[1] ** 2 + a[2] ** 2);  // Radial distance
+            var theta = Math.acos(a[2] / r); // Polar angle (0 to π)
+            var phi = Math.atan2(a[1], a[0]); // Azimuthal angle (-π to π)
+
+            // Adjust phi to be in the range [0, 2π)
+            if (phi < 0) {
+                phi += 2 * Math.PI;
+            }
+
+            return [r, theta, phi];
+        }
+
+
+    function vektorNormalisera(a){
+        var näm = vektorMagnitud(a);
+        if(näm != 0){
+            return  vektorScala(a, 1 / näm);
+        }else{
+            return Array(näm).fill(0);
+        }
+    }
+
+    //Magnitud av vektor. 
+    function vektorMagnitud(a){
+
+    var acc = 0;
+    for (let i = 0; i < a.length; i++) {
+
+    acc += Math.pow(a[i], 2);
+                    
+    }
+    return Math.sqrt(acc)
+    }
+
+    //skalning av vector. 
+    function vektorScala(a, scal){
+
+    var res = [];
+    for (var i = 0; i < a.length; i++) {
+    res[i] = a[i]*scal;    
+    }
+    return res;
+    }
+
+
+    //Enkel subtraktion a - b
+    function vektorSubtraction(a, b){
+
+    var res = [];
+    for (var i = 0; i < a.length; i++) {
+    res[i] = a[i] - b[i];    
+    }
+    return res;
+    }
+
+    function vektorAddition(a, b){
+
+    var res = [];
+    for (var i = 0; i < a.length; i++) {
+    res[i] = a[i] + b[i];    
+    }
+    return res;
+    }
+
+    //Enkel vektor projection. vektor a projeceras på vector be.
+    function projektion(a, b){
+    var scal = dotprodukt(a,b) / dotprodukt(b,b);
+    var res = [];
+    for (var i = 0; i < a.length; i++) {
+    res[i] = b[i]*scal;    
+    }
+    return res;
+    }
+
+    //enkel dotprodukt för vektorere
+    function dotprodukt(a, b){
+    var acc = 0;
+    for (var i = 0; i < a.length; i++) {
+    acc += a[i]*b[i];                        
+    }    
+    return acc;   
+    }   
+
+
+
+    </script>
+</body>
+</html>

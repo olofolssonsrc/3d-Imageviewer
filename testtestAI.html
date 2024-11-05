@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Null Geodesic Ray Tracer</title>
+    <style>
+        canvas { 
+            border: 1px solid black; 
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="800" height="800"></canvas>
+    
+    <script>
+        // Constants
+        const G = 6.67430e-11; // Gravitational constant (m^3 kg^-1 s^-2)
+        const M = 1.989e30;    // Mass of the black hole (kg) (e.g., mass of the sun)
+        const c = 299792458;   // Speed of light (m/s)
+        
+        // Schwarzschild radius (in meters)
+        const Rs = 2 * G * M / (c * c);
+        
+        // Initial conditions
+        let r = 10 * Rs;       // Initial radius (start far from the event horizon)
+        let phi = 0;           // Initial angle
+        let b = 4 * Rs;        // Impact parameter (adjust for different trajectories)
+        
+        // Step size for integration
+        const h = 0.01;        // Small step size for accuracy
+        
+        // Array to store the trajectory points for visualization
+        let trajectory = [];
+        
+        // Effective potential for null geodesic (light)
+        function V_eff(r) {
+            return (1 - Rs / r) * (b / r) * (b / r);
+        }
+        
+        // Derivative of r with respect to the affine parameter lambda
+        function dr_dl(r) {
+            return Math.sqrt(1 - V_eff(r));
+        }
+        
+        // Derivative of phi with respect to the affine parameter lambda
+        function dphi_dl(r) {
+            return b / (r * r);
+        }
+        
+        // RK4 Integration Method
+        function rk4_step(r, phi, h) {
+            let k1_r = dr_dl(r) * h;
+            let k1_phi = dphi_dl(r) * h;
+            
+            let k2_r = dr_dl(r + 0.5 * k1_r) * h;
+            let k2_phi = dphi_dl(r + 0.5 * k1_phi) * h;
+            
+            let k3_r = dr_dl(r + 0.5 * k2_r) * h;
+            let k3_phi = dphi_dl(r + 0.5 * k2_phi) * h;
+            
+            let k4_r = dr_dl(r + k3_r) * h;
+            let k4_phi = dphi_dl(r + k3_phi) * h;
+            
+            let r_next = r + (k1_r + 2*k2_r + 2*k3_r + k4_r) / 6;
+            let phi_next = phi + (k1_phi + 2*k2_phi + 2*k3_phi + k4_phi) / 6;
+            
+            return [r_next, phi_next];
+        }
+        
+        // Trace the light ray
+        function traceLightRay() {
+            i = 0;
+            while (r > Rs && i < 100) {  // Continue until the ray reaches close to the event horizon
+                trajectory.push([r * Math.cos(phi), r * Math.sin(phi)]); // Store the point
+                i++;
+                let result = rk4_step(r, phi, h);
+                r = result[0];
+                phi = result[1];
+            }
+        }
+        
+        // Run the simulation
+        traceLightRay();
+        
+        // Visualization using Canvas
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set up the canvas
+        ctx.translate(canvas.width / 2, canvas.height / 2);  // Move origin to center
+        ctx.scale(1, -1);  // Flip y-axis to match the usual coordinate system
+
+        // Function to draw the black hole
+        function drawBlackHole() {
+            ctx.beginPath();
+            ctx.arc(0, 0, Rs * 50, 0, 2 * Math.PI);  // Scale up Rs for visibility
+            ctx.fillStyle = 'black';
+            ctx.fill();
+        }
+
+        // Function to draw the light ray
+        function drawLightRay(trajectory) {
+            ctx.strokeStyle = 'yellow';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i < trajectory.length; i++) {
+                let x = trajectory[i][0] * 1e-10;  // Scale down for visibility
+                let y = trajectory[i][1] * 1e-10;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        // Draw everything
+        drawBlackHole();
+        drawLightRay(trajectory);
+    </script>
+</body>
+</html>

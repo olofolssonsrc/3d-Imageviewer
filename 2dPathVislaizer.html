@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+
+            const c = 299722458;
+            const G = 6.67430*Math.pow(10, -11);
+            const M = 1000000000;
+
+            ctx.strokeStyle = 'black';
+            ctx.beginPath();
+            var radiussh = (2 * G * 1) / (c);
+            testasd = scaleToCanvas([radiussh, 0])
+            origo = scaleToCanvas([0, 0])
+            ctx.arc(origo[0], origo[1], 300, 0, 2 * Math.PI);
+            ctx.stroke();
+
+            startCord = [c*60, c*20]
+            var sx = 0;
+            var sy = 0;
+            sCord = [sx, sy];
+
+                ctx.beginPath();
+                ctx.arc(scaleToCanvas(sCord)[0], scaleToCanvas(sCord)[1], 7, 0, 2 * Math.PI, false);
+                ctx.fillStyle = 'black';
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(scaleToCanvas(startCord)[0], scaleToCanvas(startCord)[1], 7, 0, 2 * Math.PI, false);
+                ctx.fillStyle = 'red';
+                ctx.fill();
+            var dirGlob = [1,0]
+            simulatePath2(startCord, dirGlob, 1)
+
+
+            function simulatePath2(start, dir, sec){
+
+                var x = start[0];
+                var y = start[1];
+
+                var r = Math.sqrt(Math.pow(x - sx, 2) + Math.pow(y - sy, 2));
+                //var phi = Math.atan2(y - sy, -x + sx) + Math.PI;
+
+                var v = dir;
+
+                var pos = [x, y];  
+                var vel = vektorScala([dir[0], dir[1]], c); 
+                var timeStep = 1;
+                var h2;
+
+                ctx.beginPath();
+                var startCordCanvas = scaleToCanvas(start);
+                ctx.moveTo(startCordCanvas[0], startCordCanvas[1]);
+
+
+                for (let i = 0; i < 300; i++) {
+
+               //     var r = Math.sqrt(pos[0]**2 + pos[1]**2);
+
+                    pos[0] += vel[0] * timeStep;
+                    pos[1] += vel[1] * timeStep;
+
+                    var vmag = vektorMagnitud(vel);
+z
+                    timeStep = c/vmag;
+
+                   CordCanvas = scaleToCanvas([pos[0],pos[1]]);
+                   ctx.lineTo(parseInt(CordCanvas[0]), parseInt(CordCanvas[1]));
+
+                }
+
+                ctx.strokeStyle = 'blue';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+            }
+
+
+
+
+
+
+
+
+
+            //start är startpotision
+            //dir är riktningsvektorn 
+            //sec är hur många gånder per sekund den updataerar
+            function simulatePath(start, dir, sec){
+
+                var x = start[0];
+                var y = start[1];
+
+                var r = Math.sqrt(Math.pow(x - sx, 2) + Math.pow(y - sy, 2));
+                var phi = Math.atan2(y - sy, -x + sx) + Math.PI;
+
+                //Igen magnitud betyder bara att den ska åka rakt ner för enkelhetens snkull.
+                if(dir[0] == 0 && dir[1] == 0){
+                    dir = -[-Math.cos(phi), -Math.sin(phi)]
+                }
+
+                var phideg = phi * (180 / Math.PI);
+                ctx.font = '25px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillStyle = 'black';
+                var textX = canvas.width - 10; 
+                var textY = 30; 
+                ctx.fillText(`r: ${(r / c).toFixed(2)}c*s`, textX, textY);
+                ctx.fillText(`phi: ${phideg.toFixed(2)}°`, textX, textY + 20);
+
+                ctx.beginPath();
+                var startCordCanvas = scaleToCanvas(start);
+                ctx.moveTo(startCordCanvas[0], startCordCanvas[1]);
+
+                var i = 0;
+
+                [vR, vPhi] = calculateV(dir);
+              //  console.log(vPhi + " " + vR)
+               // console.log(phi + " " + r)
+                var E = calculateE();
+                var L = calculateL();
+
+
+                //var dtl = E / (c*c*(1 - (2*G*M)/(r*c*c)));
+
+
+
+
+                vR *= 1;
+                vPhi *= 1;
+
+
+
+
+         //       console.log(dtl)
+               // console.log(vPhi + "   " + L)
+                while(i < 1){
+                    i++;
+
+                    //This sign might need to be changed lter depending on approach or going away
+                    r += vR;
+                    phi += vPhi;
+                    //console.log(dir)
+                    //onsole.log(vR + "   " + vPhi)
+                    //console.log((r/c)+ " " + phi*(360/(2*Math.PI)))
+
+                    xkk = r*Math.cos(phi);
+                    ykk = r*Math.sin(phi);
+
+                   CordCanvas = scaleToCanvas([xkk,-ykk]);
+                  // console.log(CordCanvas[0] + "   " + CordCanvas[1])
+               //   console.log(L)
+                   ctx.lineTo(parseInt(CordCanvas[0]), parseInt(CordCanvas[1]));
+                   [vR, vPhi] = calculateV_LATER();
+               //    console.log((vR + r) + "   " + (phi + vPhi))
+                  // console.log(vR)
+                 //  console.log(vR + "   " + vPhi)
+
+                   /*
+                   if(CordCanvas[0] > canvas.width || CordCanvas[0] < 0){
+                        break;
+                    }
+                    if(CordCanvas[1] > canvas.height || CordCanvas[1] < 0){
+                        break;
+                    }*/
+                }
+                ctx.stroke();
+
+                //Förrutom vid första situationen
+                function calculateV_LATER(){
+                    var radialSpeed = -c*E;
+                   
+                   var test = (1-(2*G*M)/(r*c*c))*((L*L)/(r*r))
+                   if(test > E*E){
+                        radialSpeed = 0;         
+
+                    }else if (Math.abs(test) > 1e-20){
+                        radialSpeed = -c*Math.sqrt((E*E) - test);
+                    }
+                    
+                    var phiSpeed = L / (r*r);
+
+                    return[radialSpeed, phiSpeed];
+
+                }
+
+                //räknar ut rdiala och rotations komponenterna av hastigheten
+                //Används för att räkna ut start E, L. utgåt ifråm att phi, r är startposParten. Då denna 
+                //ej bör köras senare. Kanske borde fixas.
+                //anvönder dir soms startvektor, bör ko9llas över, kanske är klumpigt.
+                function calculateV(v){
+
+                    //skaffa radiala vektorn, vinkelhastighetvektorn beroende på posParten
+                    var phivec = [-Math.sin(phi), Math.cos(phi)];
+                    var radialVec = [Math.cos(phi), Math.sin(phi)];
+                    
+                    // v är lika med hastighetsvektorn. 
+                    var vCorr = vektorScala(vektorNormalisera(v), c);
+                    var phiSpeed = vektorMagnitud(projektion(vCorr, phivec)) / (r*2*Math.PI);
+                    var radialSpeed = vektorMagnitud(projektion(vCorr, radialVec));
+
+                    return[radialSpeed, phiSpeed];
+                }
+
+                //E = (1 - 2GM/rc^2)dt/dlambda 
+                //beräknar energin i systemet. Det kommer ej att ändras 
+                function calculateE(){
+
+                    console.log( 1*c*c*(1-(2*G*M)/(r*Math.pow(c, 2))))
+                }
+
+                //beräknar vinkel-moment(angular momentum) i systemet. Det kommer ej att ändras 
+                function calculateL(){
+                    return r*r*vPhi;
+                }
+
+                ctx.strokeStyle = 'blue';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+
+
+            var isDragging = false;
+
+            var canvasCords = scaleToCanvas(startCord);
+
+            canvas.addEventListener('mousedown', function(event) {
+
+                var coords = getCoords(event);
+                if(7 >= vektorMagnitud(vektorSubtraction(coords, canvasCords))){
+                    isDragging = true;
+                    document.body.style.cursor = 'grabbing';
+                }
+                
+            });
+
+            canvas.addEventListener('mousemove', function(event) {
+                if (isDragging) {
+
+                    var coords = getCoords(event);
+                    canvasCords = coords;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.beginPath();
+                    ctx.arc(coords[0], coords[1], 7, 0, 2 * Math.PI, false);
+                    ctx.fillStyle = 'red';
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.arc(scaleToCanvas(sCord)[0], scaleToCanvas(sCord)[1], 7, 0, 2 * Math.PI, false);
+                    ctx.fillStyle = 'black';
+                    ctx.fill();
+
+                    ctx.strokeStyle = 'black';
+                    ctx.beginPath();
+                    var radiussh = (2 * G * M) / (c);
+                    testasd = scaleToCanvas([radiussh, 0])
+                    origo = scaleToCanvas([0, 0])
+                    
+                    ctx.arc(origo[0], origo[1], 300, 0, 2 * Math.PI);
+                    ctx.stroke();
+                  //  console.log(canvasToSpace(coords)[0] /c+ " " + canvasToSpace(coords)[1] / c )
+                    ctx.strokeStyle = 'blue';
+                    simulatePath2(canvasToSpace(coords),  dirGlob, 1);
+                }
+            });
+          
+            canvas.addEventListener('mouseup', function(event) {
+                isDragging = false;
+                document.body.style.cursor = 'default';
+            });
+
+            canvas.addEventListener('mouseout', function(event) {
+                isDragging = false;
+                document.body.style.cursor = 'default';
+            });
+
+            function getCoords(event) {
+                var rect = canvas.getBoundingClientRect();
+                var x = event.clientX - rect.left;
+                var y = event.clientY - rect.top;
+                return  [ x,  y ];
+            }
+
+            //antar att canvas bredd motsvarar 100 ljus sekunder
+            //Höjd räknas ut beroende på canvasesns ratio
+            function scaleToCanvas(val){
+
+                var inX = val[0];
+                var inY = val[1];
+
+                var ratio = canvas.height / canvas.width;
+
+                var width = c*100;
+                var height = width*ratio;
+                    
+                var xUt = canvas.width*0.2 + (inX/width)*canvas.width;
+                var yUt = canvas.height*0.5 - (inY/height)*canvas.height;
+                return [xUt, yUt]
+            }
+
+            function canvasToSpace(val){
+
+                var inX = val[0];
+                var inY = val[1];   
+                    
+
+                var ratio = canvas.height / canvas.width;
+
+                var width = c*100;
+                var height = width*ratio;
+                    
+                var xUt = -width*0.2 + (inX/canvas.width)*width;
+                var yUt = -height*0.5 + (inY/canvas.height)*height;
+                return [xUt,-yUt]
+            }
+
+    //skippar längden av vektorn
+    //antar enhetsbvektor
+    //ÄR FELFELFELEFL
+    function KarttillSfär(a){
+
+    var theta = Math.acos(a[2])
+    var phi = Math.atan2(a[0], a[1])
+    return [theta, phi]
+    }
+
+
+    function vektorNormalisera(a){
+        var näm = vektorMagnitud(a);
+        if(näm != 0){
+            return  vektorScala(a, 1 / näm);
+        }else{
+            return Array(näm).fill(0);
+        }
+    }
+
+    //Magnitud av vektor. 
+    function vektorMagnitud(a){
+
+    var acc = 0;
+    for (let i = 0; i < a.length; i++) {
+
+    acc += Math.pow(a[i], 2);
+                    
+    }
+    return Math.sqrt(acc)
+    }
+
+    //skalning av vector. 
+    function vektorScala(a, scal){
+
+    var res = [];
+    for (var i = 0; i < a.length; i++) {
+    res[i] = a[i]*scal;    
+    }
+    return res;
+    }
+
+
+    //Enkel subtraktion a - b
+    function vektorSubtraction(a, b){
+
+    var res = [];
+    for (var i = 0; i < a.length; i++) {
+    res[i] = a[i] - b[i];    
+    }
+    return res;
+    }
+
+    function vektorAddition(a, b){
+
+    var res = [];
+    for (var i = 0; i < a.length; i++) {
+    res[i] = a[i] + b[i];    
+    }
+    return res;
+    }
+
+    //Enkel vektor projection. vektor a projeceras på vector be.
+    function projektion(a, b){
+    var scal = dotprodukt(a,b) / dotprodukt(b,b);
+    var res = [];
+    for (var i = 0; i < a.length; i++) {
+    res[i] = b[i]*scal;    
+    }
+    return res;
+    }
+
+    //enkel dotprodukt för vektorere
+    function dotprodukt(a, b){
+    var acc = 0;
+    for (var i = 0; i < a.length; i++) {
+    acc += a[i]*b[i];                        
+    }    
+    return acc;   
+    }       
+    /*
+                function simulatePath(start, dir, sec){
+
+                var x = start[0];
+                var y = start[1];
+
+                var r = Math.sqrt(Math.pow(x - sx, 2) + Math.pow(y - sy, 2));
+                var phi = Math.atan2(y - sy, -x + sx) + Math.PI;
+              //  console.log(phi + " " + r)
+
+                var phideg = phi * (180 / Math.PI);
+                ctx.font = '25px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillStyle = 'black';
+                var textX = canvas.width - 10; 
+                var textY = 30; 
+
+                // Render the text
+                ctx.fillText(`r: ${(r / c).toFixed(2)}c*s`, textX, textY);
+                ctx.fillText(`phi: ${phideg.toFixed(2)}°`, textX, textY + 20);
+
+                ctx.beginPath();
+                var startCordCanvas = scaleToCanvas(start);
+                ctx.moveTo(startCordCanvas[0], startCordCanvas[1]);
+
+                var i = 0;
+
+
+                [vR, vPhi] = calculateV(dir);
+                E = calculateE();
+                L = calculateL();
+
+
+                while(i < 100){
+                    i++;
+
+                    r += -vR;
+                    phi += vPhi;
+                 
+                    //console.log((r/c)+ " " + phi*(360/(2*Math.PI)))
+
+                    xkk = r*Math.cos(phi);
+                    ykk = r*Math.sin(phi);
+
+                    console.log((xkk / c) + "  " + (ykk / c))
+
+                   CordCanvas = scaleToCanvas([xkk,-ykk]);
+                   ctx.lineTo(CordCanvas[0], CordCanvas[1]);
+
+                }
+                ctx.stroke();
+                //räknar ut rdiala och rotations komponenterna av hastigheten
+                //Används för att räkna ut start E, L. utgåt ifråm att phi, r är startposParten. Då denna 
+                //ej bör köras senare. Kanske borde fixas.
+                //anvönder dir soms startvektor, bör ko9llas över, kanske är klumpigt.
+                function calculateV(v){
+
+                    //skaffa radiala vektorn, vinkelhastighetvektorn beroende på posParten
+                    var phivec = [-Math.sin(phi), Math.cos(phi)];
+                    var radialVec = [Math.cos(phi), Math.sin(phi)];
+                    
+                    // v är lika med hastighetsvektorn. 
+                    var vCorr = vektorScala(vektorNormalisera(v), c);
+                    
+                    var phiSpeed = vektorMagnitud(projektion(vCorr, phivec)) / (r);
+                    var radialSpeed = vektorMagnitud(projektion(vCorr, radialVec));
+                    
+               //     console.log((Math.pow(radialSpeed, 2) + Math.pow(centripicalSpeed, 2)) / (c*c) );
+                    return[radialSpeed, phiSpeed];
+                }
+    */
+
+    </script>
+</body>
+</html>

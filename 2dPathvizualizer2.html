@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+</head>
+<body>
+<canvas id="canvas" style = "border : 1px solid black;"></canvas>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = 800;
+    canvas.height = 800;
+
+
+    const rs = 1;
+    const c = 1;
+    const dt = 0.01; 
+    const steps = 1000; 
+
+    var x = 350;
+    var y = 350;
+    var vx = 1;
+    var vy = 0;
+
+    var xs = 400;
+    var ys = 400;
+
+    var h2 = Math.pow((x * vy - y * vx), 2);
+
+    function force() {
+        let r = Math.sqrt((x-xs)*(x - xs) + (y-ys)*(y - ys));
+
+        let rFifth = Math.pow(r, 5);
+        let f = -1.5 * h2 / rFifth;
+     //   console.log(f)
+        return {
+            fx: -f * x,
+            fy: -f * y
+        };
+    }
+
+    function force2() {
+
+        return {
+            fx: 1,
+            fy: -1
+        };
+    }
+
+    function updatePosition() {
+        let f = force2();
+        //let r = Math.sqrt((x-xs)*(x - xs) + (y-ys)*(y - ys));
+
+        vx += f.fx * dt;
+        vy += f.fy * dt;
+
+        x += vx * dt;
+        y += vy * dt;
+    }
+
+    function drawPath() {
+       
+        ctx.beginPath();
+        ctx.moveTo(x , y );
+
+        for (let i = 0; i < steps; i++) {
+            updatePosition();
+            ctx.lineTo(x , y );
+        }
+        console.log(x + "   " + y)
+        ctx.strokeStyle = 'blue';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    ctx.beginPath()
+    ctx.arc(xs, ys, 5, 0, 2*Math.PI)
+    ctx.fill();
+    drawPath();
+
+    function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+
+
+    let startx = 350;
+    let starty = 350;
+    x = startx;
+    y = starty
+    const radius = 5;
+    let isDragging = false;
+
+    function drawArc() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        ctx.arc(startx, starty, radius, 0, 2 * Math.PI);
+        ctx.fill();
+    }
+
+    function getMousePosition(event) {
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        return { x, y };
+    }
+
+    canvas.addEventListener('mousedown', function(event) {
+        const mousePos = getMousePosition(event);
+        const distance = Math.sqrt((mousePos.x - startx) ** 2 + (mousePos.y - starty) ** 2);
+
+        if (distance <= radius) {
+            isDragging = true;
+            document.body.style.cursor = 'grabbing';
+        }
+    });
+
+    canvas.addEventListener('mousemove', function(event) {
+        if (isDragging) {
+            const mousePos = getMousePosition(event);
+            startx = mousePos.x;
+            starty = mousePos.y;
+            x = startx;
+             y = starty
+            drawArc();
+            drawPath();
+        }
+    });
+
+    canvas.addEventListener('mouseup', function() {
+        isDragging = false;
+        document.body.style.cursor = 'default';
+    });
+
+    canvas.addEventListener('mouseout', function() {
+        isDragging = false;
+        document.body.style.cursor = 'default';
+    });
+
+    drawArc();
+    drawPath();
+
+    function KarttillSfär(a){
+
+        var theta = Math.acos(a[2])
+        var phi = Math.atan2(a[0], a[1])
+        return [theta, phi]
+    }
+
+
+function vektorNormalisera(a){
+    var näm = vektorMagnitud(a);
+    if(näm != 0){
+        return  vektorScala(a, 1 / näm);
+    }else{
+        return Array(näm).fill(0);
+    }
+}
+
+//Magnitud av vektor. 
+function vektorMagnitud(a){
+
+var acc = 0;
+for (let i = 0; i < a.length; i++) {
+
+acc += Math.pow(a[i], 2);
+                
+}
+return Math.sqrt(acc)
+}
+
+//skalning av vector. 
+function vektorScala(a, scal){
+
+var res = [];
+for (var i = 0; i < a.length; i++) {
+res[i] = a[i]*scal;    
+}
+return res;
+}
+
+
+//Enkel subtraktion a - b
+function vektorSubtraction(a, b){
+
+var res = [];
+for (var i = 0; i < a.length; i++) {
+res[i] = a[i] - b[i];    
+}
+return res;
+}
+
+function vektorAddition(a, b){
+
+var res = [];
+for (var i = 0; i < a.length; i++) {
+res[i] = a[i] + b[i];    
+}
+return res;
+}
+
+//Enkel vektor projection. vektor a projeceras på vector be.
+function projektion(a, b){
+var scal = dotprodukt(a,b) / dotprodukt(b,b);
+var res = [];
+for (var i = 0; i < a.length; i++) {
+res[i] = b[i]*scal;    
+}
+return res;
+}
+
+//enkel dotprodukt för vektorere
+function dotprodukt(a, b){
+var acc = 0;
+for (var i = 0; i < a.length; i++) {
+acc += a[i]*b[i];                        
+}    
+return acc;   
+}     
+
+</script>
+</body>
+</html>
