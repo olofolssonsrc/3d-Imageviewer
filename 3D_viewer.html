@@ -32,76 +32,29 @@
         <br>
         <div id="settingsDIV">
 
-            <label for="fov">FOV: <span id="fovValue">1</span></label><br>
+            <label for="fov">FOV: <span id="fovValue">1.78</span></label><br>
             <input type="range" id="fov" value="1.78" name="fov" min="0" max="3.1415926" step="0.01"><br>
 
-            <label for="fisheye">Fisheye: <span id="fisheyeValue">0</span></label><br>
-            <input type="range" id="fisheye" name="fisheye" min="0" max="1" step="0.01"><br>
+           <!-- <label for="fisheye">Fisheye: <span id="fisheyeValue">0</span></label><br>
+            <input type="range" id="fisheye" name="fisheye" min="0" max="1" step="0.01"><br>-->
 
+            <form id="radialToggleForm">
+                <label>
+                    <input type="radio" name="fragkod" id ="frag_kodRA" value="frag_kod"> Fisheye
+                </label><br>
+                <label>
+                    <input type="radio" name="fragkod" id ="frag_kod2RA" value="frag_kod2"> steriographic 
+                </label>
+            </form><br>
+            <p style="display: none;" id="fragmentShaderSource"></p>
             <input type="file" id="fileInput" accept="image/*">
 
 
         </div>
-    </div>
+    </div>  
+  
+      <script id="frag_kod2" type="x-shader/x-fragment">
 
-    <script>
-
-    const canvas = document.getElementById('canvas');
-    const gl = canvas.getContext('webgl');
-
-        
-    document.getElementById('fileInput').addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            const imageUrl = URL.createObjectURL(file);
-            image.src = imageUrl;
-            
-        }
-    });
-
-    var image = new Image();
-    image.src =   'https://www.birgittaberggren.com/star9.png'; 
-    image.crossOrigin = 'anonymous';
-    image.onload = function() {
-    const texture = gl.createTexture();
-
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texImage2D(
-        gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image
-    );
-    };
-
-
-function resizeCanvas() {
-    const pixelRatio = window.devicePixelRatio || 1;
-    const width = window.innerWidth * pixelRatio;
-    const height = window.innerHeight * pixelRatio;
-
-    canvas.width = width;
-    canvas.height = height;
-
-    canvas.style.width = window.innerWidth + 'px';
-    canvas.style.height = window.innerHeight + 'px';
-
-    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-}
-
-
-
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
-
-    const vertexShaderSource = `
-        attribute vec4 a_position;
-        void main(void) {
-            gl_Position = a_position;
-        }
-    `;
-
-    const fragmentShaderSource = `
         precision mediump float;
         uniform vec2 u_resolution;  
         uniform vec3 rotationVector;
@@ -115,27 +68,65 @@ window.addEventListener('resize', resizeCanvas);
 
         const float PI = 3.14159265358979323846;
 
+        vec3 rotateAround(vec3 a, vec3 b, float theta) {
+            b = normalize(b);             
+            float cosTheta = cos(theta);
+            float sinTheta = sin(theta);
+            
+            return a * cosTheta +
+                cross(b, a) * sinTheta +
+                b * dot(b, a) * (1.0 - cosTheta);
+        }
+
+        float aproxSH(float deg){
+
+            if(deg <= 5.0 / 90.0){
+                return 1.05*(2035.0*deg*deg);
+            }else{
+                return ((0.1808/deg) + 2.0 - deg/PI);
+            }   
+        }
+
         void main() {
 
             vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-
             float ratio = u_resolution.y / u_resolution.x;
+
+            float distScreenX = 2.0*(uv.x - 0.5);
+            float distScreenY = 2.0*ratio*(uv.y - 0.5);
 
             vec3 newRotVec = rotationVector;
 
-            newRotVec *= abs(1.0 / tan(u_fov * 0.5));
+            //fov
+            float f =  abs(1.0 / tan(u_fov * 0.5)); //f
+            newRotVec *=f;
             
             vec3 global = newRotVec + (uv.x - 0.5)*rotVecPlane - ratio*(uv.y - 0.5)*rotVecUp;
+
+            //rotera runt vektorn runt kryssprocukten av global och newROT. 
+
+            float R = sqrt(distScreenX*distScreenX + distScreenY*distScreenY); //R
+
+            float maxDist = sqrt(1.0 + ratio*ratio);
+
+            float angle = u_fov * (R / maxDist);
+
+            vec3 axis = cross(newRotVec, global);
+
+            float outAngle = atan(R/f);
+
+          //  float offsetDEGSH = aproxSH(outAngle);
+
+            global = rotateAround(newRotVec, axis, outAngle);
+
 
             vec3 raktFram = vec3(1.0, 0.0, 0.0);
             vec3 raktUpp = vec3(0.0, 0.0, 1.0);
 
             vec3 ProjPlane = vec3(global.x, global.y, 0.0);
-            vec3 ProjWall = vec3(global.x, 0.0, global.z);
 
             float LengthGlobal = length(global);
             float lengthProjPlane = length(ProjPlane);
-            float lengthProjWall = length(ProjWall);
 
 
             float minstVinkelY = 0.0;
@@ -156,19 +147,99 @@ window.addEventListener('resize', resizeCanvas);
                 vinkelX = 2.0*PI - vinkelX;
             }
 
-            float wouldIfFishEyeX = u_fov*(uv.x - 0.5);
-            float wouldIfFishEyeY = u_fov*ratio*(uv.y - 0.5);
+            float finalUVX = vinkelX / (2.0*PI);
+            float finalUVY = vinkelY / PI;  
 
-            /*Räknar ut mittenrotationsvektorns roattion*/
+            vec2 finalUV = vec2(finalUVX, finalUVY);
+            vec2 clampedUV = clamp(finalUV, 0.0000001, 0.9999999);
+            vec4 color = texture2D(u_texture, clampedUV);
 
-            vec3 RProjPlane = vec3(newRotVec.x, newRotVec.y, 0.0);
-            float RlengthProjPlane = length(RProjPlane);
-            minstVinkelX = acos(dot(raktFram, ProjPlane) / lengthProjPlane);
+            gl_FragColor = color;
+            //gl_FragColor = vec4(finalUVX, finalUVY, 0.0, 1.0);
+
+        }
+    
+    </script>
+
+    <script id="frag_kod" type="x-shader/x-fragment">
+
+        precision mediump float;
+        uniform vec2 u_resolution;  
+        uniform vec3 rotationVector;
+        uniform vec3 rotVecPlane;
+        uniform vec3 rotVecUp;
+        varying vec2 v_texCoord;
+        uniform sampler2D u_texture;
+
+        uniform float u_fov;
+        uniform float u_fisheye;
+
+        const float PI = 3.14159265358979323846;
+
+        vec3 rotateAround(vec3 a, vec3 b, float theta) {
+            b = normalize(b);             
+            float cosTheta = cos(theta);
+            float sinTheta = sin(theta);
+            
+            return a * cosTheta +
+                cross(b, a) * sinTheta +
+                b * dot(b, a) * (1.0 - cosTheta);
+        }
+
+        void main() {
+
+            vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+            float ratio = u_resolution.y / u_resolution.x;
+
+            float wouldIfFishEyeX = 2.0*(uv.x - 0.5);
+            float wouldIfFishEyeY = 2.0*ratio*(uv.y - 0.5);
+
+            vec3 newRotVec = normalize(rotationVector);
+
+            //fov
+            float f =  abs(1.0 / tan(u_fov * 0.5)); //f
+            newRotVec *=f;
+            
+            vec3 global = newRotVec + (uv.x - 0.5)*rotVecPlane - ratio*(uv.y - 0.5)*rotVecUp;
+
+            //rotera runt vektorn runt kryssprocukten av global och newROT. 
+
+            float R = sqrt(wouldIfFishEyeX*wouldIfFishEyeX + wouldIfFishEyeY*wouldIfFishEyeY); //R
+
+            float maxDist = sqrt(1.0 + ratio*ratio);
+
+            float angle = u_fov * (R / maxDist);
+
+            vec3 axis = cross(normalize(newRotVec), normalize(global));
+
+            global = rotateAround(newRotVec, axis, angle);
+
+            vec3 raktFram = vec3(1.0, 0.0, 0.0);
+            vec3 raktUpp = vec3(0.0, 0.0, 1.0);
+
+            vec3 ProjPlane = vec3(global.x, global.y, 0.0);
+
+            float LengthGlobal = length(global);
+            float lengthProjPlane = length(ProjPlane);
 
 
+            float minstVinkelY = 0.0;
+            float vinkelY = 0.0;
+            if (LengthGlobal > 0.0) {
+                minstVinkelY = acos(dot(raktUpp, global) / LengthGlobal);
+                vinkelY = PI - minstVinkelY;
+            }
 
-            /*----*/
-
+            float minstVinkelX = 0.0;
+            float vinkelX = 2.0 * PI;
+            if (lengthProjPlane > 0.0) {
+                minstVinkelX = acos(dot(raktFram, ProjPlane) / lengthProjPlane);
+                vinkelX = minstVinkelX;
+            }
+            
+            if(ProjPlane.y < 0.0){
+                vinkelX = 2.0*PI - vinkelX;
+            }
 
             float finalUVX = vinkelX / (2.0*PI);
             float finalUVY = vinkelY / PI;  
@@ -180,7 +251,94 @@ window.addEventListener('resize', resizeCanvas);
             gl_FragColor = color;
             //gl_FragColor = vec4(finalUVX, finalUVY, 0.0, 1.0);
 
-            }
+        }
+    
+    </script>
+
+    <script>
+
+    const canvas = document.getElementById('canvas');
+    const gl = canvas.getContext('webgl');
+
+
+
+    document.getElementById('fileInput').addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const imageUrl = URL.createObjectURL(file);
+            image.src = imageUrl;
+            
+        }
+    });
+
+    function getParameterByName(name) {
+        const url = new URL(window.location.href);
+        return url.searchParams.get(name);
+    }
+
+    let frag_kod_source = getParameterByName('fragkod');
+    let fragmentShaderSource;
+
+    if (frag_kod_source) {
+        document.getElementById(frag_kod_source + "RA").checked  = true;
+        fragmentShaderSource = document.getElementById(frag_kod_source).text;
+    } else {
+        document.getElementById('frag_kodRA').checked  = true;
+        fragmentShaderSource = document.getElementById('frag_kod').text;
+    }
+
+    document.getElementById('fragmentShaderSource').innerText = fragmentShaderSource;
+
+    
+    const form = document.getElementById('radialToggleForm');
+    form.addEventListener('change', function(event) {
+        if (event.target.name === 'fragkod') {
+            frag_kod_source = event.target.value;
+            window.location.search = `?fragkod=${frag_kod_source}`;
+        }
+    });
+
+    var image = new Image();
+    image.src =   'https://www.birgittaberggren.com/star9.png'; 
+    image.crossOrigin = 'anonymous';
+    image.onload = function() {
+    const texture = gl.createTexture();
+
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texImage2D(
+        gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image
+    );
+    };
+
+
+
+
+function resizeCanvas() {
+    const pixelRatio = window.devicePixelRatio || 1;
+    const width = window.innerWidth * pixelRatio;
+    const height = window.innerHeight * pixelRatio;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+}
+
+
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+    const vertexShaderSource = `
+        attribute vec4 a_position;
+        void main(void) {
+            gl_Position = a_position;
+        }
     `;
 
     function compileShader(gl, source, type) {
@@ -197,7 +355,7 @@ window.addEventListener('resize', resizeCanvas);
     }
 
     const vertexShader = compileShader(gl, vertexShaderSource, gl.VERTEX_SHADER);
-    const fragmentShader = compileShader(gl, fragmentShaderSource, gl.FRAGMENT_SHADER);
+    var fragmentShader = compileShader(gl, fragmentShaderSource, gl.FRAGMENT_SHADER);
 
     function createProgram(gl, vertexShader, fragmentShader) {
         const program = gl.createProgram();
@@ -212,7 +370,7 @@ window.addEventListener('resize', resizeCanvas);
         return program;
     }
 
-    const shaderProgram = createProgram(gl, vertexShader, fragmentShader);
+    var shaderProgram = createProgram(gl, vertexShader, fragmentShader);
     gl.useProgram(shaderProgram);
 
     const vertices = new Float32Array([
@@ -275,11 +433,11 @@ window.addEventListener('resize', resizeCanvas);
         fov = parseFloat(event.target.value);
         document.getElementById("fovValue").textContent = fov;
     });
-
+/*
     document.getElementById("fisheye").addEventListener("input", function(event) {
         fisheye = parseFloat(event.target.value);
         document.getElementById("fisheyeValue").textContent = fisheye;
-    });
+    });*/
 
     var isMouseDown = false;
     document.getElementById('canvas').addEventListener('mousedown', function() {
@@ -355,7 +513,6 @@ window.addEventListener('resize', resizeCanvas);
 
     //skippar längden av vektorn
     //antar enhetsbvektor
-    //felfelfelfefefEFEF
     function KarttillSfär(a){
 
         var theta = Math.acos(a[2])
